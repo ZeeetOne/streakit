@@ -1,5 +1,5 @@
 import 'package:drift/drift.dart';
-import 'package:drift_flutter/drift_flutter.dart';
+import 'package:drift_flutter/drift_flutter.dart' show driftDatabase;
 import 'daos/habits_dao.dart';
 
 part 'app_database.g.dart';
@@ -36,7 +36,7 @@ class HabitCompletions extends Table {
 
 @DriftDatabase(tables: [Habits, HabitCompletions], daos: [HabitsDao])
 class AppDatabase extends _$AppDatabase {
-  AppDatabase() : super(DriftDatabase(name: 'streakit'));
+  AppDatabase() : super(driftDatabase(name: 'streakit'));
 
   @override
   int get schemaVersion => 1;

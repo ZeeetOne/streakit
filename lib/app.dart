@@ -1,16 +1,20 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'core/router/app_router.dart';
+import 'core/theme/app_theme.dart';
 
-// TODO: Wire up GoRouter and app theme in subsequent tasks.
-class StreaKitApp extends StatelessWidget {
+class StreaKitApp extends ConsumerWidget {
   const StreaKitApp({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    return const MaterialApp(
+  Widget build(BuildContext context, WidgetRef ref) {
+    final router = ref.watch(appRouterProvider);
+
+    return MaterialApp.router(
       title: 'StreaKit',
-      home: Scaffold(
-        body: Center(child: Text('StreaKit')),
-      ),
+      debugShowCheckedModeBanner: false,
+      theme: AppTheme.lightTheme,
+      routerConfig: router,
     );
   }
 }
