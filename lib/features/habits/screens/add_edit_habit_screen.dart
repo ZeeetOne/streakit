@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:streakit/core/database/app_database.dart';
 import 'package:streakit/core/database/database_providers.dart';
+import 'package:streakit/core/notifications/notification_service.dart';
 import 'package:streakit/core/utils/color_utils.dart';
 import 'package:streakit/features/habits/providers/habit_form_provider.dart';
 import 'package:streakit/shared/constants/habit_icons.dart';
@@ -123,6 +124,7 @@ class _AddEditHabitScreenState extends ConsumerState<AddEditHabitScreen> {
         : null;
 
     final dao = ref.read(habitsDaoProvider);
+    final notifications = NotificationService.instance;
 
     try {
       if (_isEdit) {
@@ -140,8 +142,20 @@ class _AddEditHabitScreenState extends ConsumerState<AddEditHabitScreen> {
             updatedAt: Value(DateTime.now()),
           ),
         );
+        // Update reminder for existing habit
+        if (_reminderEnabled && _reminderTime != null) {
+          await notifications.scheduleHabitReminder(
+            habitId: widget.habitId!,
+            habitName: name,
+            time: _reminderTime!,
+            frequency: _frequency,
+            customDays: _frequency == _freqCustom ? _customDays : null,
+          );
+        } else {
+          await notifications.cancelHabitReminder(widget.habitId!);
+        }
       } else {
-        await dao.insertHabit(
+        final newId = await dao.insertHabit(
           HabitsCompanion.insert(
             name: name,
             description:
@@ -153,6 +167,16 @@ class _AddEditHabitScreenState extends ConsumerState<AddEditHabitScreen> {
             reminderTime: Value(reminderStr),
           ),
         );
+        // Schedule reminder for new habit
+        if (_reminderEnabled && _reminderTime != null) {
+          await notifications.scheduleHabitReminder(
+            habitId: newId,
+            habitName: name,
+            time: _reminderTime!,
+            frequency: _frequency,
+            customDays: _frequency == _freqCustom ? _customDays : null,
+          );
+        }
       }
       if (mounted) context.pop();
     } finally {
