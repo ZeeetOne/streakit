@@ -52,22 +52,66 @@ GoRouter appRouter(Ref ref) {
       GoRoute(
         path: '/habits/new',
         parentNavigatorKey: _rootNavigatorKey,
-        builder: (context, state) => const AddEditHabitScreen(),
+        pageBuilder: (context, state) => CustomTransitionPage(
+          key: state.pageKey,
+          child: const AddEditHabitScreen(),
+          transitionsBuilder: (context, animation, secondaryAnimation, child) {
+            return SlideTransition(
+              position: Tween<Offset>(
+                begin: const Offset(0, 1),
+                end: Offset.zero,
+              ).animate(
+                CurvedAnimation(parent: animation, curve: Curves.easeOut),
+              ),
+              child: child,
+            );
+          },
+        ),
       ),
       GoRoute(
         path: '/habits/:id',
         parentNavigatorKey: _rootNavigatorKey,
-        builder: (context, state) {
+        pageBuilder: (context, state) {
           final id = int.parse(state.pathParameters['id']!);
-          return HabitDetailScreen(habitId: id);
+          return CustomTransitionPage(
+            key: state.pageKey,
+            child: HabitDetailScreen(habitId: id),
+            transitionsBuilder:
+                (context, animation, secondaryAnimation, child) {
+              return SlideTransition(
+                position: Tween<Offset>(
+                  begin: const Offset(0, 1),
+                  end: Offset.zero,
+                ).animate(
+                  CurvedAnimation(parent: animation, curve: Curves.easeOut),
+                ),
+                child: child,
+              );
+            },
+          );
         },
       ),
       GoRoute(
         path: '/habits/:id/edit',
         parentNavigatorKey: _rootNavigatorKey,
-        builder: (context, state) {
+        pageBuilder: (context, state) {
           final id = int.parse(state.pathParameters['id']!);
-          return AddEditHabitScreen(habitId: id);
+          return CustomTransitionPage(
+            key: state.pageKey,
+            child: AddEditHabitScreen(habitId: id),
+            transitionsBuilder:
+                (context, animation, secondaryAnimation, child) {
+              return SlideTransition(
+                position: Tween<Offset>(
+                  begin: const Offset(0, 1),
+                  end: Offset.zero,
+                ).animate(
+                  CurvedAnimation(parent: animation, curve: Curves.easeOut),
+                ),
+                child: child,
+              );
+            },
+          );
         },
       ),
     ],

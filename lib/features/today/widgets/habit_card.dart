@@ -6,6 +6,8 @@ import 'package:streakit/core/utils/color_utils.dart';
 import 'package:streakit/features/today/providers/today_provider.dart';
 import 'package:streakit/shared/constants/habit_icons.dart';
 
+const _milestoneStreaks = {7, 14, 30, 100};
+
 class HabitCard extends StatelessWidget {
   const HabitCard({
     super.key,
@@ -111,6 +113,8 @@ class HabitCard extends StatelessWidget {
                 child: _CompleteButton(
                   isCompleted: isCompleted,
                   habitColor: habitColor,
+                  isMilestone:
+                      isCompleted && _milestoneStreaks.contains(streak),
                   onTap: () {
                     HapticFeedback.mediumImpact();
                     onToggle();
@@ -129,11 +133,13 @@ class _CompleteButton extends StatelessWidget {
   const _CompleteButton({
     required this.isCompleted,
     required this.habitColor,
+    required this.isMilestone,
     required this.onTap,
   });
 
   final bool isCompleted;
   final Color habitColor;
+  final bool isMilestone;
   final VoidCallback onTap;
 
   @override
@@ -158,8 +164,8 @@ class _CompleteButton extends StatelessWidget {
       ),
     );
 
-    // Animate scale bounce when toggling to completed
-    return button
+    // Animate scale bounce when toggling; add shimmer on milestone streaks
+    final animated = button
         .animate(key: ValueKey(isCompleted))
         .scale(
           duration: 200.ms,
@@ -167,5 +173,17 @@ class _CompleteButton extends StatelessWidget {
           begin: const Offset(0.8, 0.8),
           end: const Offset(1.0, 1.0),
         );
+
+    if (isMilestone) {
+      return animated
+          .then()
+          .shimmer(
+            duration: 400.ms,
+            color: Colors.amber.withAlpha(120),
+            curve: Curves.easeIn,
+          );
+    }
+
+    return animated;
   }
 }

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
@@ -72,7 +73,10 @@ class TodayScreen extends ConsumerWidget {
                             .toggleCompletion(item.habit.id, item.isCompleted),
                         onLongPress: () =>
                             context.push('/habits/${item.habit.id}/edit'),
-                      ),
+                      )
+                          .animate()
+                          .fadeIn(duration: 200.ms)
+                          .slideY(begin: 0.1, end: 0),
                     );
                   },
                 ),
@@ -113,7 +117,10 @@ class TodayScreen extends ConsumerWidget {
                             .toggleCompletion(item.habit.id, item.isCompleted),
                         onLongPress: () =>
                             context.push('/habits/${item.habit.id}/edit'),
-                      );
+                      )
+                          .animate()
+                          .fadeIn(duration: 200.ms)
+                          .slideY(begin: 0.1, end: 0);
                     },
                     childCount: state.completed.length,
                   ),

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'core/router/app_router.dart';
 import 'core/theme/app_theme.dart';
+import 'features/settings/providers/theme_provider.dart';
 
 class StreaKitApp extends ConsumerWidget {
   const StreaKitApp({super.key});
@@ -9,11 +10,18 @@ class StreaKitApp extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final router = ref.watch(appRouterProvider);
+    final themeAsync = ref.watch(themeProvider);
+    final themeMode = themeAsync.maybeWhen(
+      data: (mode) => mode,
+      orElse: () => ThemeMode.system,
+    );
 
     return MaterialApp.router(
       title: 'StreaKit',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.lightTheme,
+      darkTheme: AppTheme.darkTheme,
+      themeMode: themeMode,
       routerConfig: router,
     );
   }
