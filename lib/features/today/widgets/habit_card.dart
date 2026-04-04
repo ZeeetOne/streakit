@@ -11,10 +11,12 @@ class HabitCard extends StatelessWidget {
     super.key,
     required this.habitWithStatus,
     required this.onToggle,
+    this.onLongPress,
   });
 
   final HabitWithStatus habitWithStatus;
   final VoidCallback onToggle;
+  final VoidCallback? onLongPress;
 
   @override
   Widget build(BuildContext context) {
@@ -32,6 +34,7 @@ class HabitCard extends StatelessWidget {
       child: InkWell(
         borderRadius: BorderRadius.circular(12),
         onTap: () => context.push('/habits/${habit.id}'),
+        onLongPress: onLongPress ?? () => context.push('/habits/${habit.id}/edit'),
         child: Opacity(
           opacity: isCompleted ? 0.6 : 1.0,
           child: Row(

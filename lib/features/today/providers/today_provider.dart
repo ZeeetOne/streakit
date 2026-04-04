@@ -34,6 +34,12 @@ class TodayState {
     required this.completedCount,
     required this.totalCount,
   });
+
+  List<HabitWithStatus> get incomplete =>
+      scheduled.where((h) => !h.isCompleted).toList();
+
+  List<HabitWithStatus> get completed =>
+      scheduled.where((h) => h.isCompleted).toList();
 }
 
 // ---------------------------------------------------------------------------
@@ -140,6 +146,30 @@ class TodayNotifier extends _$TodayNotifier {
     } else {
       await dao.insertCompletion(habitId, today);
     }
+  }
+
+  Future<void> reorder(int oldIndex, int newIndex) async {
+    final currentState = state.value;
+    if (currentState == null) return;
+
+    // Collect incomplete habits in their current display order
+    final incompleteIds = currentState.scheduled
+        .where((h) => !h.isCompleted)
+        .map((h) => h.habit.id)
+        .toList();
+
+    if (oldIndex >= incompleteIds.length || newIndex > incompleteIds.length) {
+      return;
+    }
+
+    // Flutter's ReorderableListView semantics: adjust newIndex when moving down
+    if (newIndex > oldIndex) newIndex--;
+
+    final id = incompleteIds.removeAt(oldIndex);
+    incompleteIds.insert(newIndex, id);
+
+    final dao = ref.read(habitsDaoProvider);
+    await dao.reorderHabits(incompleteIds);
   }
 }
 

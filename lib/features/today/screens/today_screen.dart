@@ -53,21 +53,72 @@ class TodayScreen extends ConsumerWidget {
                     ),
                   ),
                 )
-              else
-                SliverList(
-                  delegate: SliverChildBuilderDelegate(
-                    (context, index) {
-                      final item = state.scheduled[index];
-                      return HabitCard(
+              else ...[
+                // Reorderable section for incomplete habits
+                SliverReorderableList(
+                  itemCount: state.incomplete.length,
+                  onReorder: (oldIndex, newIndex) => ref
+                      .read(todayProvider.notifier)
+                      .reorder(oldIndex, newIndex),
+                  itemBuilder: (context, index) {
+                    final item = state.incomplete[index];
+                    return ReorderableDragStartListener(
+                      key: ValueKey(item.habit.id),
+                      index: index,
+                      child: HabitCard(
                         habitWithStatus: item,
                         onToggle: () => ref
                             .read(todayProvider.notifier)
                             .toggleCompletion(item.habit.id, item.isCompleted),
+                        onLongPress: () =>
+                            context.push('/habits/${item.habit.id}/edit'),
+                      ),
+                    );
+                  },
+                ),
+                // Divider between incomplete and completed
+                if (state.completed.isNotEmpty)
+                  SliverToBoxAdapter(
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
+                      child: Row(
+                        children: [
+                          const Expanded(child: Divider()),
+                          Padding(
+                            padding:
+                                const EdgeInsets.symmetric(horizontal: 8),
+                            child: Text(
+                              'Completed',
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .labelSmall
+                                  ?.copyWith(color: Colors.grey),
+                            ),
+                          ),
+                          const Expanded(child: Divider()),
+                        ],
+                      ),
+                    ),
+                  ),
+                // Non-reorderable section for completed habits
+                SliverList(
+                  delegate: SliverChildBuilderDelegate(
+                    (context, index) {
+                      final item = state.completed[index];
+                      return HabitCard(
+                        key: ValueKey('completed-${item.habit.id}'),
+                        habitWithStatus: item,
+                        onToggle: () => ref
+                            .read(todayProvider.notifier)
+                            .toggleCompletion(item.habit.id, item.isCompleted),
+                        onLongPress: () =>
+                            context.push('/habits/${item.habit.id}/edit'),
                       );
                     },
-                    childCount: state.scheduled.length,
+                    childCount: state.completed.length,
                   ),
                 ),
+              ],
               const SliverToBoxAdapter(child: SizedBox(height: 80)),
             ],
           ),
