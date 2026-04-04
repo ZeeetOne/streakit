@@ -33,7 +33,7 @@ final class TodayNotifierProvider
   TodayNotifier create() => TodayNotifier();
 }
 
-String _$todayNotifierHash() => r'1aa3a96695f7f07ab9e8d70e239f2704a9df3726';
+String _$todayNotifierHash() => r'0a88a6608d905dc64b42a674f705f5bdef371ca6';
 
 abstract class _$TodayNotifier extends $StreamNotifier<TodayState> {
   Stream<TodayState> build();

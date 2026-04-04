@@ -4,6 +4,7 @@ import 'dart:convert';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:streakit/core/database/app_database.dart';
 import 'package:streakit/core/database/database_providers.dart';
+import 'package:streakit/features/habits/providers/streak_provider.dart';
 
 part 'today_provider.g.dart';
 
@@ -47,25 +48,15 @@ class TodayNotifier extends _$TodayNotifier {
     final today = DateTime.now();
     final todayOnly = DateTime(today.year, today.month, today.day);
 
-    // Combine the two streams manually by listening to one and re-fetching the other
     final habitsStream = dao.watchAllHabits();
     final completionsStream = dao.watchCompletionsForDate(todayOnly);
+    final allCompletionsStream = dao.watchAllCompletions();
 
-    // Use async* with a StreamController approach via nested await for
-    List<Habit>? latestHabits;
-    List<HabitCompletion>? latestCompletions;
-
-    // We use a broadcast approach by merging both streams
-    await for (final _ in _merge(habitsStream, completionsStream)) {
-      // On each emission from either stream, get current values
-      latestHabits ??= await habitsStream.first;
-      latestCompletions ??= await completionsStream.first;
-
-      // Re-read fresh snapshots each time either stream emits
-      // The merge fires whenever either stream emits; we yield a new state
+    await for (final _ in _merge3(habitsStream, completionsStream, allCompletionsStream)) {
       final state = _buildState(
         await dao.watchAllHabits().first,
         await dao.watchCompletionsForDate(todayOnly).first,
+        await dao.watchAllCompletions().first,
         today,
       );
       yield state;
@@ -74,10 +65,11 @@ class TodayNotifier extends _$TodayNotifier {
 
   TodayState _buildState(
     List<Habit> allHabits,
-    List<HabitCompletion> completions,
+    List<HabitCompletion> todayCompletions,
+    List<HabitCompletion> allCompletions,
     DateTime today,
   ) {
-    final completedIds = completions.map((c) => c.habitId).toSet();
+    final completedIds = todayCompletions.map((c) => c.habitId).toSet();
     final weekday = today.weekday; // 1=Mon, 7=Sun
 
     // Filter habits scheduled for today
@@ -96,6 +88,12 @@ class TodayNotifier extends _$TodayNotifier {
       }
     }).toList();
 
+    // Build a lookup: habitId -> list of completion dates (all time)
+    final Map<int, List<DateTime>> completionsByHabit = {};
+    for (final c in allCompletions) {
+      completionsByHabit.putIfAbsent(c.habitId, () => []).add(c.completedDate);
+    }
+
     // Sort: incomplete first (by sortOrder), then completed (by sortOrder)
     final incomplete = scheduled
         .where((h) => !completedIds.contains(h.id))
@@ -107,13 +105,24 @@ class TodayNotifier extends _$TodayNotifier {
         .toList()
       ..sort((a, b) => a.sortOrder.compareTo(b.sortOrder));
 
+    HabitWithStatus toStatus(Habit h, bool isCompleted) {
+      Set<int>? customDays;
+      if (h.frequency == 'custom' && h.customDays != null) {
+        final List<dynamic> parsed = jsonDecode(h.customDays!);
+        customDays = parsed.cast<int>().toSet();
+      }
+      final dates = completionsByHabit[h.id] ?? [];
+      final streak = calculateCurrentStreak(
+        dates,
+        h.frequency,
+        customDays: customDays,
+      );
+      return HabitWithStatus(habit: h, isCompleted: isCompleted, currentStreak: streak);
+    }
+
     final sortedScheduled = [
-      ...incomplete.map(
-        (h) => HabitWithStatus(habit: h, isCompleted: false),
-      ),
-      ...completed.map(
-        (h) => HabitWithStatus(habit: h, isCompleted: true),
-      ),
+      ...incomplete.map((h) => toStatus(h, false)),
+      ...completed.map((h) => toStatus(h, true)),
     ];
 
     return TodayState(
@@ -135,25 +144,33 @@ class TodayNotifier extends _$TodayNotifier {
 }
 
 // ---------------------------------------------------------------------------
-// Stream merge helper — emits whenever either stream emits
+// Stream merge helpers — emit whenever any stream emits
 // ---------------------------------------------------------------------------
 
-Stream<void> _merge(Stream<dynamic> a, Stream<dynamic> b) async* {
+Stream<void> _merge3(
+  Stream<dynamic> a,
+  Stream<dynamic> b,
+  Stream<dynamic> c,
+) async* {
   bool done = false;
 
   final iterA = StreamIterator(a);
   final iterB = StreamIterator(b);
+  final iterC = StreamIterator(c);
 
   Future<bool> nextA() => iterA.moveNext();
   Future<bool> nextB() => iterB.moveNext();
+  Future<bool> nextC() => iterC.moveNext();
 
   var pendingA = nextA();
   var pendingB = nextB();
+  var pendingC = nextC();
 
   while (!done) {
     final result = await Future.any([
       pendingA.then((v) => _Tagged(0, v)),
       pendingB.then((v) => _Tagged(1, v)),
+      pendingC.then((v) => _Tagged(2, v)),
     ]);
 
     if (!result.value) {
@@ -165,13 +182,16 @@ Stream<void> _merge(Stream<dynamic> a, Stream<dynamic> b) async* {
 
     if (result.tag == 0) {
       pendingA = nextA();
-    } else {
+    } else if (result.tag == 1) {
       pendingB = nextB();
+    } else {
+      pendingC = nextC();
     }
   }
 
   await iterA.cancel();
   await iterB.cancel();
+  await iterC.cancel();
 }
 
 class _Tagged {

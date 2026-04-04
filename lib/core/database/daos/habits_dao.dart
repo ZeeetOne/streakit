@@ -76,4 +76,8 @@ class HabitsDao extends DatabaseAccessor<AppDatabase> with _$HabitsDaoMixin {
           ..where((c) => c.completedDate.equals(dateOnly)))
         .watch();
   }
+
+  Stream<List<HabitCompletion>> watchAllCompletions() {
+    return select(habitCompletions).watch();
+  }
 }
