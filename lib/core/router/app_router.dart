@@ -6,6 +6,8 @@ import 'package:streakit/features/stats/screens/stats_screen.dart';
 import 'package:streakit/features/settings/screens/settings_screen.dart';
 import 'package:streakit/features/habits/screens/habit_detail_screen.dart';
 import 'package:streakit/features/habits/screens/add_edit_habit_screen.dart';
+import 'package:streakit/features/onboarding/screens/onboarding_screen.dart';
+import 'package:streakit/features/onboarding/providers/onboarding_provider.dart';
 import 'package:streakit/shared/widgets/app_shell.dart';
 
 part 'app_router.g.dart';
@@ -14,10 +16,20 @@ final _rootNavigatorKey = GlobalKey<NavigatorState>();
 
 @riverpod
 GoRouter appRouter(Ref ref) {
+  final onboardingAsync = ref.watch(onboardingProvider);
+  final hasSeenOnboarding = onboardingAsync.maybeWhen(
+    data: (seen) => seen,
+    orElse: () => false,
+  );
+
   return GoRouter(
     navigatorKey: _rootNavigatorKey,
-    initialLocation: '/',
+    initialLocation: hasSeenOnboarding ? '/' : '/onboarding',
     routes: [
+      GoRoute(
+        path: '/onboarding',
+        builder: (context, state) => const OnboardingScreen(),
+      ),
       StatefulShellRoute.indexedStack(
         builder: (context, state, navigationShell) {
           return AppShell(navigationShell: navigationShell);
